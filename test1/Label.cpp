@@ -96,13 +96,11 @@ void Label::mousePressEvent(QMouseEvent *event)
     {
         pressPoint = event->pos();
         timer.start(200);
-
-//        qDebug() << event->pos();
     }
 
     if (event->button() == Qt::RightButton)
     {
-//        qDebug() << event->pos();
+
     }
 
     QLabel::mousePressEvent(event);
@@ -200,15 +198,16 @@ void Label::removePoint(int row)
     pointNameList.removeAt(row);
     pointNum --;
 
-    int length = pointNameList.length();
     int n;
+    int length = pointNameList.length();
     for (int i = 0; i < length; i++)
     {
         n = pointNameList.at(i).mid(1).toInt();
-        if (n > row + 1)
+        if (n > row)
         {
-            QString name = QString("P%1").arg(n--);
+            QString name = QString("P%1").arg(n-1);
             pointNameList.replace(i, name);
+            qDebug() << pointNameList;
         }
     }
 }

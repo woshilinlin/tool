@@ -160,7 +160,7 @@ void MainWindow::removePointInfo(int row)
         point p = pointInfoList.at(i)->getPointInfo();
         json.remove(p.pointName);
 
-        int n = p.pointName.right(1).toInt();
+        int n = p.pointName.mid(1).toInt();
         QString name = QString("P%1").arg(--n);
         p.pointName = name;
         pointInfoList.at(i)->setPointInfo(p);
