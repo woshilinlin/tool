@@ -1,7 +1,6 @@
 #ifndef RTSPCAMERA_H
 #define RTSPCAMERA_H
 
-#include "abstractcamera.h"
 #include <opencv2/opencv.hpp>
 
 #include <QImage>
