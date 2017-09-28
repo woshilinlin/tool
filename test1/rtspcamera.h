@@ -11,27 +11,58 @@ class RTSPCamera : public QObject
     Q_OBJECT
 
 public:
-    RTSPCamera(const QString & rtspUrl);
 
+    /*!
+     * \brief RTSPCamera rtsp协议摄像头
+     * \param rtspUrl url路径
+     */
+    RTSPCamera(const QString & rtsp_url);
+
+    /*!
+     * \brief doCapture 拍照
+     */
     void doCapture();
 
+    /*!
+     * \brief frameSize 图片大小
+     * \return 返回图片大小
+     */
 	QSize frameSize();
 
 public slots:
 
+    /*!
+     * \brief vInit 初始化摄像头
+     * \return 初始化成功返回true
+     */
 	bool vInit();
+
+    /*!
+     * \brief vRelease 释放资源
+     */
 	void vRelease();
 
+    /*!
+     * \brief doCaptures 获取图片的槽函数
+     * \return cv::Mat格式的图片
+     */
     cv::Mat doCaptures();
-private slots:
 
 signals:
-    void emitIamage(const cv::Mat &);
+
+    /*!
+     * \brief sendIamage 发送图片信号
+     */
+    void sendIamage(const cv::Mat &);
+
+    /*!
+     * \brief capture 拍照信号
+     */
     void capture();
 
 private:
 	cv::VideoCapture _camera;
-	QString _rtspUrl = QString::null;
+    QString _rtsp_url = QString::null;
     QImage _lastCapturedImage;
 	QSize _frameSize;
 };

@@ -1,242 +1,224 @@
-#include "Label.h"
+#include "imagelabel.h"
 
 #include <QPen>
 #include <QMenu>
-#include <QEvent>
 #include <QDebug>
-#include <QPoint>
 #include <QPixmap>
 #include <QPainter>
 #include <QMouseEvent>
-#include <QHoverEvent>
 
-Label::Label() : increase(1.25), reduced(0.8), pointNum(1), num(1.0)
+ImageLabel::ImageLabel() : point_number_(1), zoom_multiple_(1.0)
 {
     setLineWidth(0);
-    connect(this, SIGNAL(pixSignal()), this, SLOT(setCameraPixmap()));
-    connect(this, SIGNAL(wheelSignal()), this, SLOT(setCameraPixmap()));
-    connect(&timer, SIGNAL(timeout()), this, SLOT(longPress()));
-    connect(&pointTimer, SIGNAL(timeout()), this, SLOT(timeOut()));
-    timer.setSingleShot(true);
+    connect(this, SIGNAL(pixMapUpdate()), this, SLOT(setScalePixmap()));
+    connect(this, SIGNAL(wheelRolling()), this, SLOT(setScalePixmap()));
+    connect(&point_timer_, SIGNAL(timeout()), this, SLOT(pointTimerOut()));
+    connect(&left_longpress_timer_, SIGNAL(timeout()), this, SLOT(longPress()));
 
+    left_longpress_timer_.setSingleShot(true); //单次计时器，仅触发一次
 }
 
-void Label::showPixmap(const QString & filePath)
+void ImageLabel::showPixmap(const QString & filepath)
 {
-    pix.load(filePath);
-    setPixmap(pix);
+    pixmap_.load(filepath);
+    setPixmap(pixmap_);
 }
 
-
-void Label::showPixmap(const QPixmap & pixMap)
+void ImageLabel::showPixmap(const QPixmap & pixmap)
 {
-    pix = pixMap;
-    draw();
-    emit pixSignal();
-    setPixmap(pix);
+    pixmap_ = pixmap;
+    drawAllPoint();
+    emit pixMapUpdate();
+    setPixmap(pixmap_);
 }
 
-void Label::addPointNum()
+void ImageLabel::addPointNumber()
 {
-    pointNum++;
+    point_number_++;
 }
 
-void Label::setCameraPixmap()
+void ImageLabel::setScalePixmap()
 {
-    if (1 !=num)
+    if (1 != zoom_multiple_)
     {
         scaleImage();
     }
 }
 
-
-void Label::receiveImage(const QImage &images)
+void ImageLabel::receiveImage(const QImage &images)
 {
-    image = images;
+    image_ = images;
 }
 
-void Label::wheelEvent(QWheelEvent *event)
+void ImageLabel::wheelEvent(QWheelEvent *event)
 {
-    QPoint points = event->pos();
-    int xValue = points.x();
-    int yValue = points.y();
-    int pixWidth = pix.width();
-    int pixHeight = pix.height();
+    QPoint points = event->pos(); //鼠标悬停位置点坐标
+    int x_value = points.x();
+    int y_value = points.y();
+    int pixwidth = pixmap_.width();
+    int pixheight = pixmap_.height();
 
-    if (!pix.isNull())
+    if (!pixmap_.isNull())
     {
-        int delta = event->delta();
+        int delta = event->delta(); //滚轮滚动方向，向前为大于零
         delta > 0 ? zoomIn() : zoomOut();
-        emit wheelSignal();
+        emit wheelRolling();
 
-        qDebug() << num;
-        if (delta > 0)
-        {
-            double horMul = double(xValue) / pixWidth;
-            double verMul = double(yValue) / pixHeight;
+        qDebug() << zoom_multiple_;
+        double hormultiple = static_cast<double>(x_value) / pixwidth;
+        double vermultiple = static_cast<double>(y_value) / pixheight;
 
-            emit xSignal(horMul);
-            emit ySignal(verMul, delta);
-        }
-        else
-        {
-            double horMul = double(xValue) / pixWidth;
-            double verMul = double(yValue) / pixHeight;
-
-            emit xSignal(horMul);
-            emit ySignal(verMul, delta);
-        }
+        emit horScrollBarChange(hormultiple);
+        emit verScrollBarChange(vermultiple, delta);
     }
 }
 
-void Label::mousePressEvent(QMouseEvent *event)
+void ImageLabel::mousePressEvent(QMouseEvent *event)
 {
 
     if (event->button() == Qt::LeftButton)
     {
-        pressPoint = event->pos();
-        timer.start(200);
+        left_press_point_ = event->pos(); //鼠标左键长按的点坐标
+        left_longpress_timer_.start(200); //200毫秒后启动计时器
     }
 
     if (event->button() == Qt::RightButton)
     {
-
+        //TODO
     }
 
     QLabel::mousePressEvent(event);
 }
 
-void Label::mouseReleaseEvent(QMouseEvent *event)
+void ImageLabel::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        setCursor(Qt::ArrowCursor);
+        setCursor(Qt::ArrowCursor); //恢复光标形状
 
-        if (timer.remainingTime() > 0)
+        if (left_longpress_timer_.remainingTime() > 0)
         {
-            pressDraw(pressPoint);
+            savePoint(left_press_point_);
         }
 
-        timer.stop();
-        pointTimer.stop();
+        left_longpress_timer_.stop();
+        point_timer_.stop();
     }
     QLabel::mouseReleaseEvent(event);
 }
 
-void Label::pressDraw(QPoint point)
+void ImageLabel::savePoint(const QPoint &point)
 {
-    pointList.append(point / num);
+    point_list_.append(point / zoom_multiple_);
 
-    QString text = QString("P%1").arg(pointNum);
-    pointNameList.append(text);
-    addPointNum();
-    emit newPoint(text);
+    QString text = QString("P%1").arg(point_number_);
+    point_name_list_.append(text);
+    addPointNumber();
+    emit sendNewPointName(text);
 }
 
-void Label::longPress()
+void ImageLabel::longPress()
 {
-    setCursor(Qt::ClosedHandCursor);
-    pointTimer.start();
+    setCursor(Qt::ClosedHandCursor); //改变光标形状
+    point_timer_.start();
 }
 
-void Label::timeOut()
+void ImageLabel::pointTimerOut()
 {
-    QPoint p(pressPoint.x() - 1, pressPoint.y() -2);
-    emit pressPionts(p / num);
+    //pressEvent与相对坐标的差值
+    QPoint point(left_press_point_.x() - 1, left_press_point_.y() - 2);
+    emit leftPressPionts(point / zoom_multiple_);
 }
 
-void Label::draw()
+void ImageLabel::drawAllPoint()
 {
-    if (!pointList.isEmpty() && !pointNameList.isEmpty())
+    if (!point_list_.isEmpty() && !point_name_list_.isEmpty())
     {
-        int length = pointList.length();
+        int length = point_list_.length();
         for (int i = 0; i < length; i++)
         {
-            drawPixmap(pointList.at(i), pointNameList.at(i));
+            drawPoint(point_list_.at(i), point_name_list_.at(i));
         }
     }
 }
 
-void Label::drawPixmap(const QPoint &point, const QString & text)
+void ImageLabel::drawPoint(const QPoint &point, const QString &text)
 {
-    QPainter paint(&pix);
+    QPainter painter(&pixmap_);
 
-    QPen pointPen;
-    pointPen.setBrush(Qt::red);
-    pointPen.setWidth(2);
+    QPen point_pen; //点画笔
+    point_pen.setBrush(Qt::red);
+    point_pen.setWidth(2);
 
-    QPen trianglePen;
-    trianglePen.setBrush(Qt::blue);
-    trianglePen.setWidth(1);
+    QPen triangle_pen; //三角形画笔
+    triangle_pen.setBrush(Qt::blue);
+    triangle_pen.setWidth(1);
 
-    QPen textPen;
-    textPen.setBrush(Qt::black);
-    textPen.setWidth(1);
+    QPen text_pen; //文字画笔
+    text_pen.setBrush(Qt::black);
+    text_pen.setWidth(1);
 
-    int xPoint = point.x() * num;
-    int yPoint = point.y() * num;
-    QPointF pointF[3] = {QPointF(xPoint, yPoint + 1),
-                         QPointF(xPoint - 6, yPoint + 7),
-                         QPointF(xPoint + 6, yPoint + 7)};
+    int x_value = point.x() * zoom_multiple_;
+    int y_value = point.y() * zoom_multiple_;
 
-    paint.setPen(pointPen);
-    paint.drawPoint(xPoint, yPoint);
+    //三角形三个顶点坐标数组
+    QPointF pointF[3] = {QPointF(x_value, y_value + 1),
+                         QPointF(x_value - 6, y_value + 7),
+                         QPointF(x_value + 6, y_value + 7)};
 
-    paint.setPen(trianglePen);
-    paint.drawPolygon(pointF, 3);
+    painter.setPen(point_pen);
+    painter.drawPoint(x_value, y_value); //画点
 
-    paint.setPen(textPen);
-    paint.drawText(xPoint, yPoint - 2, text);
+    painter.setPen(triangle_pen);
+    painter.drawPolygon(pointF, 3); //画多边形
+
+    painter.setPen(text_pen);
+    painter.drawText(x_value, y_value - 2, text); //画文本
 }
 
-void Label::removePoint(int row)
+void ImageLabel::removePoint(int position)
 {
-    if (!pointList.isEmpty())
+    if (!point_list_.isEmpty() && !point_name_list_.isEmpty())
     {
-        pointList.removeAt(row);
-    }
-    pointNameList.removeAt(row);
-    pointNum --;
+        point_list_.removeAt(position);
+        point_name_list_.removeAt(position);
 
-    int n;
-    int length = pointNameList.length();
+    }
+    point_number_ --;
+
+    int current_name_number; //当前坐标名字对应的数字编号
+    int length = point_name_list_.length();
     for (int i = 0; i < length; i++)
     {
-        n = pointNameList.at(i).mid(1).toInt();
-        if (n > row)
+        current_name_number = point_name_list_.at(i).mid(1).toInt();
+        if (current_name_number > position)
         {
-            QString name = QString("P%1").arg(n-1);
-            pointNameList.replace(i, name);
-            qDebug() << pointNameList;
+            QString name = QString("P%1").arg(current_name_number-1);
+            point_name_list_.replace(i, name);
         }
     }
 }
 
-
-void Label::test()
+void ImageLabel::zoomIn()
 {
-    qDebug() << 111;
+    const double increase_ = 1.25; //每次放大倍数
+    zoom_multiple_ *= increase_;
 }
 
-
-void Label::zoomIn()
+void ImageLabel::zoomOut()
 {
-    num *= increase;
+    const double reduced_ = 0.8; //每次缩小倍数
+    zoom_multiple_ *= reduced_;
 }
 
-void Label::zoomOut()
-{
-    num *= reduced;
-}
-
-
-
-void Label::scaleImage()
+void ImageLabel::scaleImage()
 {
     Q_ASSERT(pixmap());
-    int width = image.width();
-    int height = image.height();
-    resize(image.size() * num);
-    setPixmap(pix.scaled(num * width, num * height, Qt::KeepAspectRatio));
+    int width = image_.width();
+    int height = image_.height();
+    resize(image_.size() * zoom_multiple_);
+    setPixmap(pixmap_.scaled(zoom_multiple_ * width,
+                             zoom_multiple_ * height,
+                             Qt::KeepAspectRatio));
 }
 

@@ -3,28 +3,22 @@
 
 #include <QListWidget>
 
-class MyListWidget : public QListWidget
+class PointInfoListWidget : public QListWidget
 {
     Q_OBJECT
 
 public:
-    MyListWidget();
-
-public slots:
-
-
-private:
-    void mousePressEvent(QMouseEvent *event);
+    PointInfoListWidget();
 
 signals:
-    void deletePoint(int);
+    void deletePoint(int); //删除列表中的点和点信息
 
-private slots:
-    void removeRow();
-    void removeCurrentRow(int row);
-
-private:
-    QString point;
+public slots:
+    /*!
+     * \brief removeRow 删除当前行
+     * \param row 点前点所在的行数
+     */
+    void removeRow(int row);
 };
 
 #endif // MYLISTWIDGET_H

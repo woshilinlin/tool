@@ -1,68 +1,61 @@
-#include "mainwindow.h"
-#include "Imagetools.h"
-#include "rtspcamera.h"
-
 #include <QDebug>
 #include <QtTest>
 #include <QMessageBox>
 #include <QApplication>
 
+#include "mainwindow.h"
+#include "rtspcamera.h"
 
 int main(int argc, char *argv[])
 {
-    qRegisterMetaType<cv::Mat>("cv::Mat");
+    qRegisterMetaType<cv::Mat>("cv::Mat"); //注册cv::Mat数据类型
+
     QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+    MainWindow mainwindow;
+    mainwindow.show();
 
-    RTSPCamera * rtspCamera = NULL;
-    CameraConfig cameraConfig;
+    RTSPCamera * rtspcamera = NULL;
+    CameraConfig cameraconfig; //摄像头配置
 
-    QThread cameraThread;
-    cameraThread.start();
-
-    QApplication::processEvents();
+    QThread camerathread; //摄像头线程
+    camerathread.start();
 
     while (1)
     {
         qApp->processEvents();
-        cameraConfig = w.getCameraConfig();
-        if (w.state() == START)
+        cameraconfig = mainwindow.getCameraConfig();
+        if (mainwindow.getCameraStatus() == START)
         {
-            if (rtspCamera == NULL)
+            if (rtspcamera == NULL)
             {
-                QString url = QString("rtsp://%1:%2@%3/h264/ch1/%4/av_stream").arg(cameraConfig.username).arg(cameraConfig.password).arg(cameraConfig.ip).arg("main");
-                rtspCamera = new RTSPCamera(url);
-                rtspCamera->moveToThread(&cameraThread);
-                QObject::connect(rtspCamera, SIGNAL(emitIamage(cv::Mat)), &w, SLOT(receiveMat(cv::Mat)), Qt::QueuedConnection);
+                QString url = QString("rtsp://%1:%2@%3/h264/ch1/%4/av_stream").
+                        arg(cameraconfig.username).arg(cameraconfig.password).
+                        arg(cameraconfig.ip).arg("main");
+
+                rtspcamera = new RTSPCamera(url);
+                rtspcamera->moveToThread(&camerathread);
+                QObject::connect(rtspcamera, SIGNAL(sendIamage(cv::Mat)), &mainwindow, SLOT(receiveMat(cv::Mat)),
+                                 Qt::QueuedConnection);
             }
 
-            bool cameInit = rtspCamera->vInit();
-            if (!cameInit)
+            bool cameinit = rtspcamera->vInit();
+            if (!cameinit)
             {
                 QMessageBox::warning(NULL, "camera error", "connect failed");
-                w.setState(STOP);
+                mainwindow.setCameraStatus(STOP);
                 continue;
             }
 
-            w.setState(RUNNING);
+            mainwindow.setCameraStatus(RUNNING);
             QTest::qWait(500);
         }
 
-        if (w.state() == RUNNING)
+        if (mainwindow.getCameraStatus() == RUNNING)
         {
-            rtspCamera->doCapture();
-//            cv::Mat matShow = rtspCamera->doCaptures();
-
-//            if (matShow.empty())
-//            {
-//                continue;
-//            }
-//            QImage image = Imagetools::cvMat2QImage(matShow);
-//            w.showCapturedImage(image);
+            rtspcamera->doCapture();
         }
 
-        if (!w.isVisible())
+        if (!mainwindow.isVisible())
         {
             exit(0);
         }

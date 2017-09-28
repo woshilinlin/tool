@@ -1,12 +1,12 @@
 #include "rtspcamera.h"
-#include "Imagetools.h"
 
 #include <QImage>
-#include <QTest>
 
-RTSPCamera::RTSPCamera(const QString &rtspUrl)
+#include "imagetools.h"
+
+RTSPCamera::RTSPCamera(const QString &rtsp_url)
 {
-    _rtspUrl = rtspUrl;
+    _rtsp_url = rtsp_url;
     connect(this, SIGNAL(capture()), this, SLOT(doCaptures()), Qt::QueuedConnection);
 }
 
@@ -17,11 +17,11 @@ void RTSPCamera::doCapture()
 
 cv::Mat RTSPCamera::doCaptures()
 {
-	cv::Mat originalFrame;
+    cv::Mat original_frame;
 
-	_camera.read(originalFrame);
+    _camera.read(original_frame);
 
-	if(originalFrame.cols == 0 || originalFrame.rows == 0){
+    if(original_frame.cols == 0 || original_frame.rows == 0){
 		qCritical("Null Image");
         return cv::Mat();
 	}
@@ -30,12 +30,12 @@ cv::Mat RTSPCamera::doCaptures()
 
     try
     {
-		cv::cvtColor(originalFrame, frame, CV_BGR2RGB);
+        cv::cvtColor(original_frame, frame, CV_BGR2RGB);
 	}
 	catch(cv::Exception e){
 		qCritical("OpenCV exception.");
 	}
-    emit emitIamage(frame);
+    emit sendIamage(frame);
     return frame;
 }
 
@@ -46,16 +46,16 @@ QSize RTSPCamera::frameSize()
 
 bool RTSPCamera::vInit()
 {
-	bool isOpened = _camera.open(_rtspUrl.toStdString());
+    bool opened = _camera.open(_rtsp_url.toStdString());
 
-	if(isOpened){
+    if(opened){
 		qint32 width = _camera.get(CV_CAP_PROP_FRAME_WIDTH);
 		qint32 height = _camera.get(CV_CAP_PROP_FRAME_HEIGHT);
 		qDebug("RTSP Camera opened: %d x %d", width, height);
 		_frameSize = QSize(width, height);
 	}
 
-	return isOpened;
+    return opened;
 }
 
 void RTSPCamera::vRelease()

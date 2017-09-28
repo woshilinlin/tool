@@ -11,27 +11,31 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = test1
 TEMPLATE = app
 
+LIBS += -L /usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_calib3d
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
-    Scroll.cpp \
-    Label.cpp \
-    Imagetools.cpp \
+    imagetools.cpp \
+    mainwindow.cpp \
     rtspcamera.cpp \
-    mylistwidget.cpp \
-    Pointinfo.cpp
+    imagelabel.cpp \
+    labelscroll.cpp \
+    pointInfolistwidget.cpp \
+    pointinfowidget.cpp
 
-HEADERS  += mainwindow.h \
-    Scroll.h \
-    Label.h \
-    Imagetools.h \
+HEADERS  += \
+    imagetools.h \
+    mainwindow.h \
     rtspcamera.h \
-    mylistwidget.h \
-    Pointinfo.h
+    imagelabel.h \
+    labelscroll.h \
+    pointInfolistwidget.h \
+    pointinfowidget.h
 
 FORMS    += mainwindow.ui \
-    Pointifo.ui
+    pointinfowidget.ui
 
-INCLUDEPATH += hikvision
-LIBS += -L. -lhcnetsdk -lPlayCtrl -lAudioRender -lSuperRender -lhpr -lHCCore
-LIBS += -L /usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_calib3d
+
+RESOURCES += \
+    qrc/resources.qrc
+
+DISTFILES +=

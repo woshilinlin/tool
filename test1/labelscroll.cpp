@@ -1,14 +1,11 @@
-#include "Label.h"
-#include "Scroll.h"
+#include "labelscroll.h"
 
 #include <QDebug>
-#include <QEvent>
 #include <QScrollBar>
 
-#define HORFIXEDVALUE 180
-#define VERFIXEDVALUE 60
+#include "imagelabel.h"
 
-Scroll::Scroll()
+LabelScroll::LabelScroll()
 {
     setLineWidth(0);
     setAlignment(Qt::AlignCenter);
@@ -18,42 +15,44 @@ Scroll::Scroll()
 
 }
 
-Scroll::~Scroll()
+LabelScroll::~LabelScroll()
 {
 
 }
 
-void Scroll::getHorValue(int x)
+void LabelScroll::getHorValue(int x) const
 {
-    qDebug() << "hor" << x << double(x) / horizontalScrollBar()->maximum();
+    qDebug() << x << static_cast<double>(x) / horizontalScrollBar()->maximum();
 }
 
-void Scroll::getVerValue(int y)
+void LabelScroll::getVerValue(int y) const
 {
-    double v = double(y) / verticalScrollBar()->maximum();
-    qDebug() << "ver" << y << v;
+    qDebug() << y << static_cast<double>(y) / verticalScrollBar()->maximum();
 }
 
-void Scroll::setHorValue(double x)
+void LabelScroll::setHorValue(double hormultiple)
 {
-    horizontalScrollBar()->setValue((double(horizontalScrollBar()->maximum()) + HORFIXEDVALUE) * x);
+    const int kHorFixedValue = 180;
+    QScrollBar * hor = horizontalScrollBar();
+    hor->setValue((static_cast<double>(hor->maximum()) + kHorFixedValue) * hormultiple);
 }
 
-void Scroll::setVerValue(double y, int delta)
+void LabelScroll::setVerValue(double vermultipe, int delta)
 {
+    const int kVerFixedValue = 60;
     if (delta > 0)
     {
-        double value = verticalScrollBar()->maximum();
-        verticalScrollBar()->setValue((value * y) + VERFIXEDVALUE);
+        double value = static_cast<double>(verticalScrollBar()->maximum());
+        verticalScrollBar()->setValue((value * vermultipe) + kVerFixedValue);
     }
     else
     {
-        double value = verticalScrollBar()->maximum();
-        verticalScrollBar()->setValue((value * y) - VERFIXEDVALUE);
+        double value = static_cast<double>(verticalScrollBar()->maximum());
+        verticalScrollBar()->setValue((value * vermultipe) - kVerFixedValue);
     }
 }
 
-void Scroll::setValue(const QPoint &point)
+void LabelScroll::setValue(const QPoint &point)
 {
     horizontalScrollBar()->setValue(horizontalScrollBar()->value() + point.x());
     verticalScrollBar()->setValue(verticalScrollBar()->value() + point.y());

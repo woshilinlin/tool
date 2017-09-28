@@ -1,4 +1,4 @@
-#include "Imagetools.h"
+#include "imagetools.h"
 
 Imagetools::Imagetools()
 {
